@@ -1,5 +1,6 @@
 package one.digitalinnovation.personapi.service;
 
+import lombok.AllArgsConstructor;
 import one.digitalinnovation.personapi.dto.request.PersonDTO;
 import one.digitalinnovation.personapi.dto.response.MessageResponseDTO;
 import one.digitalinnovation.personapi.entity.Person;
@@ -14,26 +15,19 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 @Service
+@AllArgsConstructor(onConstructor = @__(@Autowired))
 public class PersonService {
 
     private final PersonRepository personRepository;
 
     private final PersonMapper personMapper = PersonMapper.INSTANCE;
 
-    @Autowired
-    public PersonService(PersonRepository personRepository) {
-        this.personRepository = personRepository;
-    }
-
     public MessageResponseDTO createPerson(PersonDTO personDTO){
 
         Person personToSave = PersonMapper.INSTANCE.toModel(personDTO);
 
         Person savedPerson = personRepository.save(personToSave);
-        return MessageResponseDTO
-                .builder()
-                .message("Created Person with ID " +  savedPerson.getId())
-                .build();
+        return createMessageResponse(savedPerson.getId(), "Created Person with ID ");
     }
 
 
@@ -53,8 +47,36 @@ public class PersonService {
         }
         return personMapper.toDTO(optionalPerson.get());*/
 
-        Person person = personRepository.findById(id).orElseThrow(() -> new PersonNotFoundException(id));
+        Person person = verifyIfExists(id);
 
         return  personMapper.toDTO(person);
+    }
+
+    public void delete(Long id) throws PersonNotFoundException {
+
+        verifyIfExists(id);
+
+        personRepository.deleteById(id);
+    }
+
+    private Person verifyIfExists(Long id) throws PersonNotFoundException {
+        return personRepository.findById(id).orElseThrow(() -> new PersonNotFoundException(id));
+    }
+
+    public MessageResponseDTO updateById(Long id, PersonDTO personDTO) throws PersonNotFoundException {
+
+        verifyIfExists(id);
+
+        Person personToUpdate = PersonMapper.INSTANCE.toModel(personDTO);
+
+        Person updatedPerson = personRepository.save(personToUpdate);
+        return createMessageResponse(updatedPerson.getId(), "Updated Person with ID ");
+    }
+
+    private MessageResponseDTO createMessageResponse(Long id, String message) {
+        return MessageResponseDTO
+                .builder()
+                .message(message + id)
+                .build();
     }
 }
